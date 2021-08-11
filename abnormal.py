@@ -66,7 +66,7 @@ class helper(object):
 
 
 # 离散性类型变量数量统计
-    def get_count(dataline, name):
+    def get_count(dataline, filename,name):
         '''输入离散型变量,统计该离散型变量的不同类别的数据,并绘制条形图
             @dataline:离散型变量列
             @name：图像的名称，字符串
@@ -75,11 +75,13 @@ class helper(object):
             result:返回该离散型变量不同类别的数量,DataFrame表格
             '''
 
-        r_zj = pd.DataFrame(dataline.value_counts().sort_index())
+        r_zj = pd.DataFrame(dataline.value_counts())
         r_zj.columns = ['频数']
         r_zj.sort_values(by='频数', ascending=False, inplace=True)
-        r_zj['频率'] = r_zj / r_zj['频数'].sum()  # 计算频率
-        r_zj['累计频率'] = r_zj['频率'].cumsum()  # 计算累计频率
+        if r_zj.shape[0] > 20:
+            r_zj = r_zj.iloc[:20]
+        r_zj['频率'] = round(r_zj / r_zj['频数'].sum(), 4)  # 计算频率
+        r_zj['累计频率'] = round(r_zj['频率'].cumsum(), 4)  # 计算累计频率
         r_zj['频率%'] = r_zj['频率'].map(lambda x: "%.2f%%" % (x * 100))  # 以百分比显示频率
         r_zj['累计频率%'] = r_zj['累计频率'].map(lambda x: "%.2f%%" % (x * 100))  # 以百分比显示累计频率
 
@@ -113,8 +115,8 @@ class helper(object):
         m = r_zj['频数']
         for i, j, k in zip(range(x), y, m):
             plt.text(i - 0.1, j + 0.001, '%i' % k, color='k', fontsize=20, rotation=r)
-        name = '病人信息表' + name
-        plt.savefig('./'+f'{name}.png')
+        name1 = filename + name
+        plt.savefig('./'+f'{name1}.png',bbox_inches='tight')
         plt.show()
         return r_zj
 
@@ -159,7 +161,7 @@ class helper(object):
         r_zj = pd.DataFrame(get_Unique_df)
         r_zj.columns = ['频数']
         r_zj['频率'] = r_zj / r_zj['频数'].sum()  # 计算频率
-        r_zj['累计频率'] = r_zj['频率'].cumsum()  # 计算累计频率
+        r_zj['累计频率'] = r_zj['频率'].cumsum().map(lambda x: "%.2f" %x)  # 计算累计频率
         r_zj['频率%'] = r_zj['频率'].map(lambda x: "%.2f%%" % (x*100))  # 以百分比显示频率
         r_zj['累计频率%'] = r_zj['累计频率'].map(lambda x: "%.2f%%" % (x*100))  # 以百分比显示累计频率
         return r_zj
@@ -190,15 +192,15 @@ class helper(object):
             else:
                 return True
 
-    def count_plot_year(data,name):
+    def count_plot_year(data,filename,name):
         '''分离时间型变量列
             @data:表格数据
             result:返回该时间型变量不同类别的数量,DataFrame表格
             '''
         data1=data.copy()
         data1[name]=pd.to_datetime(data1[name])
-        data1['year']=data1[name].apply(lambda x:x.year)
-        get_count_=helper.get_count(data1['year'],'时间分布图')
+        data1['year']=data1[name].apply(lambda x:str(x.year))
+        get_count_=helper.get_count(data1['year'],filename,'时间分布图')
         return get_count_
 
     def is_number(s):
@@ -263,8 +265,8 @@ class helper(object):
             r_zj = pd.DataFrame(data.value_counts().sort_index())
             r_zj.columns = ['频数']
             r_zj.sort_values(by='频数', ascending=False, inplace=True)
-            r_zj['频率'] = r_zj / r_zj['频数'].sum()  # 计算频率
-            r_zj['累计频率'] = r_zj['频率'].cumsum()  # 计算累计频率
+            r_zj['频率'] = round(r_zj / r_zj['频数'].sum(),4) # 计算频率
+            r_zj['累计频率'] = round(r_zj['频率'].cumsum(),4)  # 计算累计频率
             r_zj['频率%'] = r_zj['频率'].map(lambda x: "%.2f%%" % (x * 100))  # 以百分比显示频率
             r_zj['累计频率%'] = r_zj['累计频率'].map(lambda x: "%.2f%%" % (x * 100))  # 以百分比显示累计频率
             # 绘制频率分布直方图
@@ -309,14 +311,71 @@ class helper(object):
         median = data.median()
         q75 = data.quantile(0.75)
         max_ = data.max()
-        mean = data.mean()
-        std = data.std()
-        skew = data.skew()
+        mean = round(data.mean(),4)
+        std = round(data.std(),4)
+        skew =round(data.skew(),4)
         df = DataFrame([mode,min_,q25,median,q75,max_,mean,std,skew],
                        index=['众数','最小值','25%分位数','中位数','75%分位数','最大值','均值','标准差','偏度'],columns=data.columns)
         df=df.T
     #     df = DataFrame(df.values.T,columns=['众数','最小值','25%分位数','中位数','75%分位数','最大值','均值','标准差','偏度'],index=[key_])
         return df
+
+    def get_boxfig(data,col,name):
+        '''
+            获取箱线图，保存到输入的路径下
+            @data: 气象数据集
+            @col: 需要画图的列名
+            @name: 图像名称
+            @file_dir: 图像保存目录
+        '''
+        fig,ax = plt.subplots(1,1)
+        # data.dropna().plot(kind='box',figsize=(20,10),ax=ax,fontsize=20)
+        data[col].plot(kind='box',figsize=(20,13),ax=ax,fontsize=20)
+        if len(col) >= 7:
+            plt.xticks(rotation=30)
+        plt.grid()
+
+        ax.set_title(name,fontsize=20)  #设置标题字体大小
+        # ax.legend(fontsize=15)     #设置图例字体大小
+        fig.savefig(f'/气象数据{name}.png')
+        plt.show()
+
+    def get_plot(data,cols):
+        '''
+            获取每个污染物每年的趋势图，保存到输入的路径下
+            @data: 气象数据集
+            @cols: 数据集上污染物的名称列表
+            @file_dir: 图像保存目录
+        '''
+        data.x = data['日期'].apply(lambda x: '2016-'+str(x)[5:10])
+        data.x = pd.to_datetime(data.x,format='%Y-%m-%d')
+        for k in cols:
+            fig,ax = plt.subplots(1,1)
+            for y in data['year'].unique():
+                cond = data.year==y
+                DataFrame(data[k][cond].values,columns=[y],index=data.x[cond]).plot(figsize=(20,10),ax=ax,fontsize=20)
+        #         ax.plot(data[k][cond].values)
+
+        #     ax.xaxis.set_minor_formatter(dates.DateFormatter('%d\n%a'))
+        #     ax.xaxis.set_major_locator(dates.MonthLocator())
+        #     ax.xaxis.set_major_formatter(dates.DateFormatter('\n\n\n%b\n%Y'))
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
+                ax.set_xlim(xmin=pd.to_datetime('2016-01-01'), xmax=pd.to_datetime('2016-12-31'))
+                ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=range(1,13), bymonthday=1, interval=1))
+        #         break
+            ax.xaxis.grid(True)
+            ax.yaxis.grid()
+        #     plt.tight_layout()
+
+            ax.set_xlabel("时间",fontsize=20) #设置x轴标签字体大小
+        #     ax.set_ylabel("污染物浓度",fontsize=20) #设置x轴标签字体大小
+            ax.set_title(f"{k}每年的趋势图",fontsize=20)  #设置标题字体大小
+            ax.legend(fontsize=15)     #设置图例字体大小
+            name = k.split('(')[0] + "每年的趋势图"
+            fig.savefig('/气象数据'+f'{name}.png')
+            plt.show()
+
+
 
 #if __name__ == '__main__':
         #updateFile('./op_visiting.csv', '\t', '')
